@@ -1,0 +1,48 @@
+{
+    "name": "bacink/krw-hub-client",
+    "description": "Client library for BKPSDM HUB: app token, SI-ASN, TTE, SIM-ASN gateway, and SIM-ASN OAuth delegation (PKCE).",
+    "type": "library",
+    "license": "GPL-3.0-only",
+    "keywords": [
+        "laravel",
+        "bkpsdm",
+        "hub",
+        "tte",
+        "si-asn",
+        "sim-asn"
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/contracts": "^11.0|^12.0|^13.0",
+        "illuminate/http": "^11.0|^12.0|^13.0",
+        "illuminate/support": "^11.0|^12.0|^13.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Krw\\HubClient\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Krw\\HubClient\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Krw\\HubClient\\HubClientServiceProvider"
+            ],
+            "aliases": {
+                "Hub": "Krw\\HubClient\\Facades\\Hub"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
