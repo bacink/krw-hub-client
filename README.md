@@ -1,7 +1,7 @@
 # KRW Hub Client
 
 Client library untuk **BKPSDM HUB**. Memudahkan aplikasi konsumen memakai layanan hub:
-token aplikasi, SI-ASN, TTE, SIM-ASN, dan delegasi login user (SIM-ASN OAuth + PKCE).
+token aplikasi, SI-ASN, TTE, SIM-ASN, storage (file manager), dan delegasi login user (SIM-ASN OAuth + PKCE).
 
 ## Instalasi HUB Client
 
@@ -119,6 +119,40 @@ PDF hasil tanda tangan **tidak boleh** diregenerasi/diubah. Unduh dari `url` seb
 $profil = $hub->simAsnPegawai('1987654321');
 ```
 
+### Storage
+
+```php
+// Daftar isi folder (area aplikasi sendiri)
+$listing = $hub->storageList();
+
+// Area publik (read-only untuk aplikasi)
+$public = $hub->storageList(area: 'public');
+
+// Pemakaian kuota
+$usage = $hub->storageUsage(); // ['usedBytes' => ..., 'quotaBytes' => ..., 'publicBytes' => ...]
+
+// Buat folder
+$folder = $hub->storageCreateFolder('dokumen');
+
+// Unggah berkas (multipart)
+$file = $hub->storageUpload(storage_path('app/surat.pdf'), name: 'surat.pdf', folderId: $folder['id']);
+
+// Metadata + signed URL
+$meta = $hub->storageFile($file['id']); // ['data' => [...], 'url' => '...']
+
+// Ubah nama / pindah / hapus berkas
+$hub->storageRenameFile($file['id'], 'surat-baru.pdf');
+$hub->storageMoveFile($file['id'], null);
+$hub->storageDeleteFile($file['id']);
+
+// Folder
+$hub->storageRenameFolder($folder['id'], 'arsip');
+$hub->storageMoveFolder($folder['id'], null);
+$hub->storageDeleteFolder($folder['id']);
+```
+
+Aplikasi hanya dapat melihat/mengubah berkas di area miliknya. Area `public` hanya dapat **dibaca** (penulisan oleh superadmin).
+
 ### Request generik
 
 ```php
@@ -170,6 +204,8 @@ parameter saat `/oauth/authorize`, dan saat `/oauth/token`.
 | `tte:sign` | Penandatanganan dokumen TTE |
 | `si-asn:read` | Data pegawai SI-ASN |
 | `sim-asn:read` | Profil pegawai SIM-ASN |
+| `storage:read` | Daftar/unduh berkas storage |
+| `storage:write` | Unggah/ubah/hapus berkas storage |
 
 ## Error
 

@@ -128,4 +128,74 @@ class HubClientTest extends TestCase
                 && $request['code_verifier'] === 'verifier-1';
         });
     }
+
+    public function test_it_lists_storage_files(): void
+    {
+        $http = new Factory;
+        $http->fake([
+            'https://hub.test/api/v1/apps/token' => $http->response([
+                'data' => ['access_token' => 'tok-1', 'expires_in' => 3600, 'scope' => 'storage:read'],
+            ]),
+            'https://hub.test/api/v1/storage' => $http->response([
+                'data' => [
+                    'folder' => null,
+                    'breadcrumbs' => [],
+                    'folders' => [['id' => 'folder-1', 'name' => 'dokumen']],
+                    'files' => [['id' => 'file-1', 'name' => 'surat.pdf']],
+                ],
+            ]),
+        ]);
+
+        $listing = $this->client($http)->storageList();
+
+        $this->assertSame('surat.pdf', $listing['files'][0]['name']);
+
+        $http->assertSent(fn ($request): bool => $request->url() === 'https://hub.test/api/v1/storage'
+            && $request->hasHeader('Authorization', 'Bearer tok-1'));
+    }
+
+    public function test_it_uploads_a_storage_file(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'hub-client-');
+        file_put_contents($path, 'PDF-CONTENT');
+
+        $http = new Factory;
+        $http->fake([
+            'https://hub.test/api/v1/apps/token' => $http->response([
+                'data' => ['access_token' => 'tok-1', 'expires_in' => 3600, 'scope' => 'storage:write'],
+            ]),
+            'https://hub.test/api/v1/storage/files' => $http->response([
+                'data' => ['id' => 'file-1', 'name' => 'surat.pdf'],
+            ], 201),
+        ]);
+
+        $file = $this->client($http)->storageUpload($path, 'surat.pdf');
+
+        $this->assertSame('file-1', $file['id']);
+
+        $http->assertSent(function ($request): bool {
+            $contentType = $request->header('Content-Type')[0] ?? '';
+
+            return $request->url() === 'https://hub.test/api/v1/storage/files'
+                && str_contains($contentType, 'multipart/form-data');
+        });
+
+        @unlink($path);
+    }
+
+    public function test_it_deletes_a_storage_file(): void
+    {
+        $http = new Factory;
+        $http->fake([
+            'https://hub.test/api/v1/apps/token' => $http->response([
+                'data' => ['access_token' => 'tok-1', 'expires_in' => 3600, 'scope' => 'storage:write'],
+            ]),
+            'https://hub.test/api/v1/storage/files/file-1' => $http->response(null, 204),
+        ]);
+
+        $this->client($http)->storageDeleteFile('file-1');
+
+        $http->assertSent(fn ($request): bool => $request->url() === 'https://hub.test/api/v1/storage/files/file-1'
+            && $request->method() === 'DELETE');
+    }
 }

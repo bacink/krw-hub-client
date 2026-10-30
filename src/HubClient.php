@@ -153,6 +153,131 @@ class HubClient
         return (array) ($response->json('data') ?? []);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function storageList(?string $folderId = null, string $area = 'own'): array
+    {
+        $query = http_build_query(array_filter([
+            'folder' => $folderId,
+            'area' => $area === 'public' ? 'public' : null,
+        ], static fn ($value): bool => $value !== null));
+
+        $path = '/api/v1/storage'.($query !== '' ? '?'.$query : '');
+
+        return (array) ($this->request('GET', $path)['data'] ?? []);
+    }
+
+    /**
+     * @return array{usedBytes: int, quotaBytes: int|null, publicBytes: int}
+     */
+    public function storageUsage(): array
+    {
+        return (array) ($this->request('GET', '/api/v1/storage/usage')['data'] ?? []);
+    }
+
+    /**
+     * @return array{data: array<string, mixed>, url: string}
+     */
+    public function storageFile(string $id): array
+    {
+        return $this->request('GET', '/api/v1/storage/files/'.rawurlencode($id));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function storageUpload(string $filePath, ?string $name = null, ?string $folderId = null): array
+    {
+        $contents = file_get_contents($filePath);
+
+        if ($contents === false) {
+            throw new HubException('Berkas tidak dapat dibaca: '.$filePath);
+        }
+
+        $token = $this->appToken();
+        $fileName = $name ?? basename($filePath);
+
+        $response = $this->http
+            ->withToken($token['access_token'])
+            ->acceptJson()
+            ->timeout($this->timeout(120))
+            ->attach('file', $contents, $fileName)
+            ->post($this->url('/api/v1/storage/files'), array_filter([
+                'folder_id' => $folderId,
+                'name' => $name,
+            ], static fn ($value): bool => $value !== null));
+
+        if ($response->failed()) {
+            throw new HubRequestException($this->detail($response), $response->status(), (array) $response->json());
+        }
+
+        return (array) ($response->json('data') ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function storageRenameFile(string $id, string $name): array
+    {
+        return (array) ($this->request('PATCH', '/api/v1/storage/files/'.rawurlencode($id), [
+            'data' => ['name' => $name],
+        ])['data'] ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function storageMoveFile(string $id, ?string $folderId): array
+    {
+        return (array) ($this->request('PATCH', '/api/v1/storage/files/'.rawurlencode($id), [
+            'data' => ['folder_id' => $folderId],
+        ])['data'] ?? []);
+    }
+
+    public function storageDeleteFile(string $id): void
+    {
+        $this->request('DELETE', '/api/v1/storage/files/'.rawurlencode($id));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function storageCreateFolder(string $name, ?string $parentId = null): array
+    {
+        return (array) ($this->request('POST', '/api/v1/storage/folders', [
+            'data' => array_filter([
+                'name' => $name,
+                'parent_id' => $parentId,
+            ], static fn ($value): bool => $value !== null),
+        ])['data'] ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function storageRenameFolder(string $id, string $name): array
+    {
+        return (array) ($this->request('PATCH', '/api/v1/storage/folders/'.rawurlencode($id), [
+            'data' => ['name' => $name],
+        ])['data'] ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function storageMoveFolder(string $id, ?string $parentId): array
+    {
+        return (array) ($this->request('PATCH', '/api/v1/storage/folders/'.rawurlencode($id), [
+            'data' => ['parent_id' => $parentId],
+        ])['data'] ?? []);
+    }
+
+    public function storageDeleteFolder(string $id): void
+    {
+        $this->request('DELETE', '/api/v1/storage/folders/'.rawurlencode($id));
+    }
+
     public function authorizationUrl(string $state, string $codeChallenge, string $scope, ?string $redirectUri = null): string
     {
         return $this->url('/api/v1/oauth/authorize?'.http_build_query([
