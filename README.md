@@ -3,7 +3,7 @@
 Client library untuk **BKPSDM HUB**. Memudahkan aplikasi konsumen memakai layanan hub:
 token aplikasi, SI-ASN, TTE, SIM-ASN, dan delegasi login user (SIM-ASN OAuth + PKCE).
 
-## Instalasi
+## Instalasi HUB Client
 
 ### Dari GitHub (VCS)
 
